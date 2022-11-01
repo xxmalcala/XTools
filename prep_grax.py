@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 
-# Author: Xyrus
-# Contact: xmaurer-alcala@amnh.org
-# Updated: 2022-10-12
-
 """Comments to come..."""
 
 import glob, os, sys
