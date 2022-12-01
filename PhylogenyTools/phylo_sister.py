@@ -34,25 +34,23 @@ def parse_tree(tree_file):
 
 def adjust_tree_root(tree):
     major_clades = ['Ba','Za', 'Op','Pl','Am','Ex','Sr']
-    clade_sizes = {i:[None,0] for i in ['BaZa', 'Op','Pl','Am','Ex','Sr']}
-
+    clade_sizes = {i:[] for i in ['BaZa', 'Op','Pl','Am','Ex','Sr']}
     for node in tree.iter_descendants("postorder"):
         mjr_c = [i.name[:2] for i in node.get_leaves() if i.name[:2] in major_clades]
         if len(mjr_c) > 1:
-            if mjr_c.count('Ba') + mjr_c.count('Za') >= len(mjr_c)-1 and len(mjr_c) > clade_sizes['BaZa'][1]:
-                clade_sizes['BaZa'] = [node, len(mjr_c)]
-                break
-
+            if mjr_c.count('Ba') + mjr_c.count('Za') >= len(mjr_c)-1:
+                clade_sizes['BaZa'].append((node, len(mjr_c)))
+                # break
             else:
                 for clade in major_clades[2:]:
-                    if mjr_c.count(clade) >= len(mjr_c)-1 and len(mjr_c) > clade_sizes[clade][1]:
-                        clade_sizes[clade] = [node, len(mjr_c)]
-
+                    if mjr_c.count(clade) >= len(mjr_c)-1:
+                        clade_sizes[clade].append((node, len(mjr_c)))
     for k, v in clade_sizes.items():
-        if v[0]:
-            tree.set_outgroup(v[0])
-
-            return tree
+        if v:
+            root_node = max(v, key = lambda x: x[-1])[0]
+            break
+    tree.set_outgroup(root_node)
+    return tree
 
 
 def check_same_taxon(node, reps = 0):
@@ -137,7 +135,10 @@ def check_many_trees(tree_folder, blen_mode):
     all_tree_files = glob.glob(f'{tree_folder}/*.tre*')
 
     for tree_file in all_tree_files:
-        gene_fam = tree_file.split('/')[-1].split('.')[0]
+        if tree_file.startswith('RAxML'):
+            gene_fam = tree_file.split('/')[-1].split('.')[1]
+        else:
+            gene_fam = tree_file.split('/')[-1].split('.')[0]
 
         detailed_summary = score_tree(
                             tree_file,
