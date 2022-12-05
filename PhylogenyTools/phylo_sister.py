@@ -140,7 +140,7 @@ def check_sisters(tree, gene_fam, blen_dist, blen_mode):
         if node.up.dist < thresh_blen:
             qblen_type = 'short'
 
-        if len(sister_taxa) > 10:
+        if len(sister_taxa) > 20:
             sister_taxa = sister_seqs = ['Too-Many']
 
         tree_phylo_sister_summary[query_taxon].append(
@@ -150,8 +150,8 @@ def check_sisters(tree, gene_fam, blen_dist, blen_mode):
             mnr,
             ','.join(sister_taxa),
             ','.join(sister_seqs),
-            f'{node.up.dist:.4f}',
-            f'{thresh_blen:.4f}',
+            f'{node.up.dist:.5f}',
+            f'{thresh_blen:.5f}',
             qblen_type])
 
     return tree_phylo_sister_summary
@@ -177,7 +177,7 @@ def check_many_trees(tree_folder, blen_mode):
     all_tree_files = glob.glob(f'{tree_folder}/*.tre*')
 
     for tree_file in all_tree_files:
-        gene_tree = tree_file.split('/')[-1]
+        gene_tree = tree_file.split('/')[-1].replace('_postguidance','')
         if gene_tree.startswith('RAxML'):
             gene_fam = gene_tree.split('.')[1]
         else:
@@ -260,7 +260,6 @@ if __name__ == '__main__':
         print('Usage:\n\n    python count_sisters.py [FOLDER-WITH-TREES] ' \
             '[AVERAGE/MEDIAN (for classifying branch-lengths)]\n')
         sys.exit(1)
-
 
     trees_summary, out_folder = check_many_trees(tree_folder, blen_eval)
 
