@@ -35,7 +35,9 @@ def parse_tree(tree_file):
 def adjust_tree_root(tree):
     major_clades = ['Ba','Za', 'Op','Pl','Am','Ex','Sr']
     clade_sizes = {i:[] for i in ['BaZa', 'Op','Pl','Am','Ex','Sr']}
+    blen_dist = []
     for node in tree.iter_descendants("postorder"):
+        blen_dist.append(node.dist)
         mjr_c = [i.name[:2] for i in node.get_leaves() if i.name[:2] in major_clades]
         if len(mjr_c) > 1:
             if mjr_c.count('Ba') + mjr_c.count('Za') >= len(mjr_c)-1:
@@ -50,7 +52,8 @@ def adjust_tree_root(tree):
             root_node = max(v, key = lambda x: x[-1])[0]
             break
     tree.set_outgroup(root_node)
-    return tree
+
+    return tree, blen_dist
 
 
 def check_same_taxon(node, reps = 0):
@@ -62,13 +65,12 @@ def check_same_taxon(node, reps = 0):
         return node.up, False, reps
 
 
-def check_sisters(tree, gene_fam, blen_mode):
-    tip_ancest_dists = [i.dist for i in tree.get_leaves()]
+def check_sisters(tree, gene_fam, blen_dist, blen_mode):
 
     if blen_mode == 'average':
-        thresh_blen = np.mean(tip_ancest_dists)
+        thresh_blen = np.mean(blen_dist)
     elif blen_mode == 'median':
-        thresh_blen = np.median(tip_ancest_dists)
+        thresh_blen = np.median(blen_dist)
 
     tree_phylo_sister_summary = defaultdict(list)
 
@@ -122,23 +124,26 @@ def score_tree(tree_file, gene_fam, reroot_folder, blen_mode):
     if not tree:
         return None
 
-    tree = adjust_tree_root(tree)
+    tree, blen_dist = adjust_tree_root(tree)
     save_tree(tree, gene_fam, reroot_folder)
 
-    return check_sisters(tree, gene_fam, blen_mode)
+    return check_sisters(tree, gene_fam, blen_dist, blen_mode)
 
 
 def check_many_trees(tree_folder, blen_mode):
     reroot_folder = f'{tree_folder.rstrip("/")}_ReRooted/Rooted_Trees/'
     Path(reroot_folder).mkdir(parents = True, exist_ok = True)
+
     comp_summary = defaultdict(list)
+
     all_tree_files = glob.glob(f'{tree_folder}/*.tre*')
 
     for tree_file in all_tree_files:
-        if tree_file.startswith('RAxML'):
-            gene_fam = tree_file.split('/')[-1].split('.')[1]
+        gene_tree = tree_file.split('/')[-1]
+        if gene_tree.startswith('RAxML'):
+            gene_fam = gene_tree.split('.')[1]
         else:
-            gene_fam = tree_file.split('/')[-1].split('.')[0]
+            gene_fam = gene_tree.split('.')[0]
 
         detailed_summary = score_tree(
                             tree_file,
@@ -200,7 +205,7 @@ def summarize_results(comp_summary, out_prefix, blen_filt = True, verbose = True
 if __name__ == '__main__':
     if len(sys.argv[1:]) == 1:
         tree_folder = sys.argv[1]
-        blen_mode = 'average'
+        blen_eval = 'average'
 
     elif len(sys.argv[1:]) == 2:
         tree_folder = sys.argv[1]
@@ -217,7 +222,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
 
-    trees_summary, out_folder = check_many_trees(tree_folder, blen_mode)
+    trees_summary, out_folder = check_many_trees(tree_folder, blen_eval)
 
     out_prefix = out_folder
     summarize_results(trees_summary, out_prefix, blen_filt = False, verbose = True)
